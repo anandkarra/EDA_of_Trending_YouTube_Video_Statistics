@@ -1,0 +1,8 @@
+Added days_on_trending
+__________________________________________________________
+
+Extracting the category names from the JSON file.
+
+Parsing the date and time into formats that are cooperative with the analysis.
+
+Getting the number of days on trending for the videos.

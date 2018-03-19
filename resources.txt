@@ -1,0 +1,8 @@
+http://www.sthda.com/english/wiki/subsetting-data-frame-columns-in-r
+
+https://stackoverflow.com/questions/16947643/getting-imported-json-data-into-a-data-frame
+
+https://stackoverflow.com/questions/1299871/how-to-join-merge-data-frames-inner-outer-left-right
+
+https://www.datacamp.com/community/tutorials/data-table-cheat-sheet
+
