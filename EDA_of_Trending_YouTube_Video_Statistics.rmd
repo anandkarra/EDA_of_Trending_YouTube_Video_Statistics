@@ -1,30 +1,472 @@
 ---
-title: "EDA_of_Trending_YouTube_Video_Statistics"
+output: 
+  html_document: 
+    fig_height: 8
+    fig_width: 12
+    toc: yes
+    toc_depth: 2
+  pdf_document: 
+    latex_engine: xelatex
+    toc: yes
+    toc_depth: 2
+editor_options: 
+  chunk_output_type: inline
+---
+---
+title: "EDA of Trending YouTube Video Statistics"
 author: "Karra Anand"
 date: "18 March 2018"
 output: html_document
----
+___
+___
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+library(ggplot2)
+library(gridExtra)
+library(dplyr)
+library(tidyr)
+library(data.table)
+library(iterators)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r echo=FALSE, Load_the_Data}
+# Load the Data
+yt_trending = read.csv('USvideos.csv')
 ```
 
-## Including Plots
+## About the dataset
+YouTube (the world-famous video sharing website) maintains a list of the top 
+trending videos on the platform. This dataset is a daily record of the top 
+trending YouTube videos. <br>
+This dataset includes several months (and counting) of data on daily trending 
+YouTube videos. Data is included for the USA, with up to 200 listed trending 
+videos per day. <br>
+More details about this dataset are present in `About_datasat.txt` included with 
+this project
 
-You can also embed plots, for example:
+___
+___
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+
+## Preprocessing
+Before we move on to plotting and analyzing the data, let us see if the data 
+requires any cleaning.
+<br>
+<br>
+The first 2 rows of each of the columns of the dataset are as follow:
+```{r echo=FALSE,preproceessing}
+head(yt_trending,n=2)
+```
+<br>
+
+> In many of the following data cleaning steps only the code but not the output 
+> is printed to prevent repeated printing of the same dataset with minor 
+> modifications. The final dataset obtained after the data cleaning is printed 
+> at the end of this section.
+
+___
+
+### Cleaning irrelevant columns
+As we are only interested in exploratory analysis of the data, we remove the 
+columns of **tags**, **thumbnail_link** and **description** since they are 
+irrelevant to us.
+```{r echo=FALSE, preprocessing_2}
+
+yt_trending <- select(yt_trending,-tags,-thumbnail_link,
+                      -description)
+
+head(yt_trending)
+
+dim(yt_trending)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+___
+
+### Converting into a data.table
+From the dimensions of the dataframe in the above output, we have
+the data for 23,362 videos(assuming there are no duplicates across 13 features; 
+we shall investigate  this the following sections). Hence, we use the data.table
+ data structure to store our data as it superior to a dataframe for add, remove,
+ update, join etc. operations.
+```{r echo=TRUE, preprocessing_3}
+yt_trending <- data.table(yt_trending)
+```
+___
+
+### Adding category names
+Further we observe that, we have names of each of the **category_id** (as part
+of `US_category_id.json` file). Hence, adding the column for **category_name**.
+
+```{r echo=TRUE, preprocessing_4}
+category_id <- c(1,2,10,15,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,
+                  34,35,36,37,38,39,40,41,42,43,44)
+category_name <- c("Film & Animation","Autos & Vehicles","Music",
+                    "Pets & Animals","Sports","Short Movies",
+                    "Travel & Events","Gaming","Videoblogging",
+                    "People & Blogs","Comedy","Entertainment",
+                    "News & Politics","Howto & Style","Education",
+                    "Science & Technology",
+                    "Nonprofits & Activism","Movies","Anime/Animation",
+                    "Action/Adventure","Classics","Comedy",
+                    "Documentary","Drama","Family","Foreign","Horror",
+                    "Sci-Fi/Fantasy","Thriller","Shorts","Shows","Trailers")
+
+category_id_names <- data.frame(category_id,category_name)
+
+yt_trending <- merge(yt_trending,category_id_names)
+
+yt_trending <- yt_trending[order(yt_trending$views,decreasing = TRUE),]
+```
+
+___
+
+### Adding and sorting by days_on_trending
+We are most interested here in analyzing the trends in the trending videos,
+and we do not have a columnn to indicate the number of days a video was on 
+trending, we add that column here.
+
+```{r echo=TRUE, preprocessing_5}
+days_on_trending_video_id <- (count(yt_trending,yt_trending$video_id))[1]
+days_on_trending_num_of_days <- (count(yt_trending,yt_trending$video_id))[2]
+days_on_trending <- data.table(days_on_trending_video_id,
+                               days_on_trending_num_of_days)
+
+setnames(days_on_trending,old="yt_trending$video_id",new="video_id")
+setnames(days_on_trending,old="n",new="days_on_trending")
+
+yt_trending <- merge(yt_trending,days_on_trending)
+
+yt_trending <- yt_trending[order(yt_trending$days_on_trending,
+                                 yt_trending$views,
+                                 decreasing = TRUE),]
+```
+
+___
+
+### Removing duplicate video entries
+We sort the videos in decreasing order of their number of days on trending.
+
+```{r echo=TRUE, preprocessing_6}
+yt_trending <- unique(yt_trending, by = c("video_id"))
+
+head(yt_trending)
+```
+
+___
+___
+
+## Univariate Plots Section
+
+```{r echo=FALSE, Univariate_Plots_stats}
+dim(yt_trending)
+names(yt_trending)
+summary(yt_trending)
+```
+As we can see from the above output, we have the data of 4,712 videos and their 
+15 features.
+
+
+```{r echo=FALSE, fig.width=12, fig.height=8, Univariate_Plots}
+category_names_plot <- ggplot(yt_trending,aes(x=category_name,fill=category_id))+
+  geom_bar()+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  xlab("Category")
+
+category_names_plot
+
+summary(yt_trending$category_name)
+```
+Plotting the number of videos as per their category name, we can see a large 
+amount of variation in the number of videos in each category. We can clearly 
+observe that **Entertainment** and **Music** are the top 2 categories with 1141 
+and 585 videos respectively closely followed by **Howto & Style** with 436 
+videos. We can also see their respective shares out of the total.
+<br>
+<br>
+Also, some categories like **Action/Adventure**, **Anime/Animation** etc. have no 
+videos.
+
+___
+
+```{r echo=FALSE, fig_width = 12, fig_height = 12, Univariate_Plots2, warning=FALSE}
+likes_plot <- ggplot(yt_trending,aes(x=yt_trending$likes))+
+  geom_histogram(bins=50)+
+  scale_x_log10(limits=c(1,100000000))+
+  xlab("log10 of number of likes on videos")
+
+dislikes_plot <- ggplot(yt_trending,aes(x=yt_trending$dislikes))+
+  geom_histogram(bins=50)+
+  scale_x_log10(limits=c(1,100000000))+
+  xlab("log10(number of dislikes)")
+
+views_plot <- ggplot(yt_trending,aes(x=yt_trending$views))+
+  geom_histogram(bins=50)+
+  scale_x_log10(limits=c(1,100000000))+
+  xlab("log10(number of views)")
+
+comments_plot <- ggplot(yt_trending,aes(x=yt_trending$comment_count))+
+  geom_histogram(bins=50)+
+  scale_x_log10(limits=c(1,100000000))+
+  xlab("log10(number of comments)")
+
+grid.arrange(views_plot,likes_plot,dislikes_plot,comments_plot,ncol=1)
+
+print("Summary of views feature:")
+summary(yt_trending$views)
+
+print("Summary of likes feature:")
+summary(yt_trending$likes)
+
+print("Summary of dislikes feature:")
+summary(yt_trending$dislikes)
+
+print("Summary of comments feature:")
+summary(yt_trending$comment_count)
+```
+This plot shows the log10 of the number of **views**, **likes**, **dislikes** and 
+**comments** on the videos.
+<br>
+<br>
+We can observe a distribution similar to that of a normal distribution. Further,
+we can see that, the mean number of views is more that that of any other 
+attribute.
+<br>
+<br>
+The **mean**, **median** and **maximum** number of view are 1,278,000, 331,600 
+and 149,400,000 respectively.
+<br>
+<br>
+The **mean**, **median** and **maximum** number of likes are 39,720, 7,726 and 
+3,094,000 repectively.
+<br>
+<br>
+The **mean**, **median** and **maximum** number of dislikes are 2,598, 302 and 
+1,674,000 respectively.
+<br>
+<br>
+The **mean**, **median** and **maximum** number of comments are 4,976, 888 and 
+1,362,000 respectively.
+
+___
+
+```{r echo=FALSE, fig.width=12, fig.height=8, Univariate_Plots3}
+comments_disabled_overall_plot <- ggplot(yt_trending,
+                                         aes(x=yt_trending$comments_disabled))+
+  geom_bar()+
+  xlab("Comments disabled")
+
+ratings_disabled_overall_plot <- ggplot(yt_trending,
+                                        aes(x=yt_trending$ratings_disabled))+
+  geom_bar()+
+  xlab("Ratings disabled")
+
+grid.arrange(comments_disabled_overall_plot,ratings_disabled_overall_plot,
+             ncol=2)
+
+print("Summary of videos with comments disabled")
+summary(yt_trending$comments_disabled)
+
+print("Summary of videos with ratings disabled")
+summary(yt_trending$ratings_disabled)
+```
+
+So we have only 79 videos which have their comments disabled and only 26 videos 
+with their ratings disabled.
+
+___
+
+```{r echo=FALSE, warning=FALSE, Univariate_Plots4}
+ggplot(yt_trending,aes(x=yt_trending$days_on_trending))+
+  geom_bar()+
+  xlab("Days on trending")
+
+summary(yt_trending$days_on_trending)
+```
+We can observe a bimodal type of distribution for the **days on trending**.
+<br>
+<br>
+With videos trending for an average of about 5 days and a maximum of 14 days.
+
+___
+
+### Top 100 trending videos
+
+```{r echo=FALSE, fig.width=12, fig.height=8, Univariate_Plots5,warning=FALSE}
+top100_trending <- yt_trending[1:100]
+
+top100_category_names_plot <- ggplot(top100_trending,aes(x=category_name,
+                                                         fill=category_id))+
+  geom_bar()+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  xlab("Categories in Top 100 trending videos")
+
+grid.arrange(top100_category_names_plot,category_names_plot)
+```
+Videos of some categories like **Auto & Vehicles**, **Comedy** etc. are not even
+present in the top 100 trending videos.
+
+<br>
+```{r echo=FALSE, warning=FALSE, Univariate_Plots6}
+top100_likes_plot <- ggplot(top100_trending,aes(x=top100_trending$likes))+
+  geom_histogram(bins=50)+
+  scale_x_log10(limits=c(1,100000000))+
+  xlab("log10 of number of likes on videos")
+
+top100_dislikes_plot <- ggplot(top100_trending,aes(x=top100_trending$dislikes))+
+  geom_histogram(bins=50)+
+  scale_x_log10(limits=c(1,100000000))+
+  xlab("log10(number of dislikes)")
+
+top100_views_plot <- ggplot(top100_trending,aes(x=top100_trending$views))+
+  geom_histogram(bins=50)+
+  scale_x_log10(limits=c(1,100000000))+
+  xlab("log10(number of views)")
+
+top100_comments_plot <- ggplot(top100_trending,
+                               aes(x=top100_trending$comment_count))+
+  geom_histogram(bins=50)+
+  scale_x_log10(limits=c(1,100000000))+
+  xlab("log10(number of comments)")
+
+
+grid.arrange(top100_views_plot,
+             top100_likes_plot,
+             top100_dislikes_plot,
+             top100_comments_plot,
+             ncol=1)
+
+print("Summary of views feature:")
+summary(top100_trending$views)
+
+print("Summary of likes feature:")
+summary(top100_trending$likes)
+
+print("Summary of dislikes feature:")
+summary(top100_trending$dislikes)
+
+print("Summary of comments feature:")
+summary(top100_trending$comment_count)
+```
+
+For the top 100 trending videos we cannot see a definitive distribution as we 
+could for these same features for the entire distribution.
+<br>
+<br>
+The **mean**, **median** and **maximum** number of view are 3,411,000, 1,665,000 
+and 45,940,000 respectively.
+<br>
+<br>
+The **mean**, **median** and **maximum** number of likes are 105,600, 49,440 and 
+822,000 repectively.
+<br>
+<br>
+The **mean**, **median** and **maximum** number of dislikes are 5,052, 1,600 and 
+165,100 respectively.
+<br>
+<br>
+The **mean**, **median** and **maximum** number of comments are 11,980, 4,667 
+and 203,900 respectively.
+<br>
+<br>
+Comparing these statistics to those for the entire distribution, all of these 
+statistics are higher than those for the entire distribution.
+
+___
+
+```{r echo=FALSE, warning=FALSE, Univariate_Plots7}
+ggplot(top100_trending,aes(x=top100_trending$days_on_trending))+
+  geom_bar()+
+  xlab("Days on trending")
+
+summary(top100_trending$days_on_trending)
+```
+
+Videos in the Top 100 trending videos trend for an average of 13 days with a 
+maximum of 14 days.
+
+___
+___
+
+## Univariate Analysis
+
+### What is the structure of your dataset?
+The dataset after preprocessing to remove duplicates, contains the data for 
+4712 videos and 15 features (video_id, category_id, trending_date, title, 
+channel_title, publish_time, views, likes, dislikes, comment_count, 
+comments_disabled, ratings_disabled, video_error_or_removed, category_name, 
+days_on_trending)
+<br>
+<br>
+**Unordered factors: **category_id, category_name.
+<br>
+  **category_id: **1,2,10,15,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,
+                  34,35,36,37,38,39,40,41,42,43,44
+  <br>
+  **category_name: **"Film & Animation","Autos & Vehicles","Music",
+                    "Pets & Animals","Sports","Short Movies",
+                    "Travel & Events","Gaming","Videoblogging",
+                    "People & Blogs","Comedy","Entertainment",
+                    "News & Politics","Howto & Style","Education",
+                    "Science & Technology",
+                    "Nonprofits & Activism","Movies","Anime/Animation",
+                    "Action/Adventure","Classics","Comedy",
+                    "Documentary","Drama","Family","Foreign","Horror",
+                    "Sci-Fi/Fantasy","Thriller","Shorts","Shows","Trailers"
+<br>
+<br>
+**Other observations:**
+
+* **Entertainment** is the category with the highest number of video in 
+trending with a total of 1141 videos.
+* Average number of views on a trending video are 1,278,000.
+* The maximum number of days for which a video stayed on trending is 14.
+* Average number of views on a video in the top 100 trending videos is 
+3,411,000.
+* Most of the videos in the top 100 trending videos stay on trending for 13 
+days.
+
+___
+
+### What is/are the main feature(s) of interest in your dataset?
+
+The **number of views (views)**, **number of days the video is trending 
+(days_on_trending)** and **category of the video (category_name)** are the main 
+features of interest here.
+
+___
+
+### What other features in the dataset do you think will help support your \
+investigation into your feature(s) of interest?
+
+Although subject to the viewers' biases, number of likes, dislikes and comments 
+can also help in understanding the video's position on the list of trending 
+videos.
+
+___
+
+### Did you create any new variables from existing variables in the dataset?
+
+Yes, the variable **category_name** was created to better interpret the 
+category_id feature which has a direct correspondance with category_name. <br>
+Also, the **days_on_trending** variable was created to keep track of the number 
+of days the video was on trending.
+
+___
+
+### Of the features you investigated, were there any unusual distributions? \
+Did you perform any operations on the data to tidy, adjust, or change the form \
+of the data? If so, why did you do this?
+
+One of the unusual observations were that there were no videos from some of the 
+categories like **Action/Adventure**, **Anime/Animation** etc.
+
+Some features like **tags**, **thubnail_link** and **description** were removed 
+from the dataset as they took a lot of space on printing and were irrelevant to 
+our analysis.
+
+Also, the same video which as trending on nultiple days was reduced to a single 
+entry on the day it had the highest views.
+
+___
+___
+
