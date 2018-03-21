@@ -26,7 +26,8 @@ library(gridExtra)
 library(dplyr)
 library(tidyr)
 library(data.table)
-library(iterators)
+library(corrplot)
+library(GGally)
 ```
 
 ```{r echo=FALSE, Load_the_Data}
@@ -161,13 +162,19 @@ ___
 dim(yt_trending)
 names(yt_trending)
 summary(yt_trending)
+
+likes_colour <- "chartreuse2"
+dislikes_colour <- "red"
+comment_count_colour <- "darkorchid"
+days_on_trending_colour <- "deeppink"
+views_colour <- "dodgerblue4"
 ```
 As we can see from the above output, we have the data of 4,712 videos and their 
 15 features.
 
 
 ```{r echo=FALSE, fig.width=12, fig.height=8, Univariate_Plots}
-category_names_plot <- ggplot(yt_trending,aes(x=category_name,fill=category_id))+
+category_names_plot <- ggplot(yt_trending,aes(x=category_name))+
   geom_bar()+
   theme(axis.text.x = element_text(angle = 45,hjust = 1))+
   xlab("Category")
@@ -190,22 +197,22 @@ ___
 
 ```{r echo=FALSE, fig_width = 12, fig_height = 12, Univariate_Plots2, warning=FALSE}
 likes_plot <- ggplot(yt_trending,aes(x=yt_trending$likes))+
-  geom_histogram(bins=50)+
+  geom_histogram(bins=50,fill="chartreuse2")+
   scale_x_log10(limits=c(1,100000000))+
-  xlab("log10 of number of likes on videos")
+  xlab("log10(number of likes)")
 
 dislikes_plot <- ggplot(yt_trending,aes(x=yt_trending$dislikes))+
-  geom_histogram(bins=50)+
+  geom_histogram(bins=50,fill="red")+
   scale_x_log10(limits=c(1,100000000))+
   xlab("log10(number of dislikes)")
 
 views_plot <- ggplot(yt_trending,aes(x=yt_trending$views))+
-  geom_histogram(bins=50)+
+  geom_histogram(bins=50,fill="dodgerblue4")+
   scale_x_log10(limits=c(1,100000000))+
   xlab("log10(number of views)")
 
 comments_plot <- ggplot(yt_trending,aes(x=yt_trending$comment_count))+
-  geom_histogram(bins=50)+
+  geom_histogram(bins=50,fill="darkorchid")+
   scale_x_log10(limits=c(1,100000000))+
   xlab("log10(number of comments)")
 
@@ -277,7 +284,7 @@ ___
 
 ```{r echo=FALSE, warning=FALSE, Univariate_Plots4}
 ggplot(yt_trending,aes(x=yt_trending$days_on_trending))+
-  geom_bar()+
+  geom_bar(fill="deeppink")+
   xlab("Days on trending")
 
 summary(yt_trending$days_on_trending)
@@ -289,13 +296,12 @@ With videos trending for an average of about 5 days and a maximum of 14 days.
 
 ___
 
-### Top 100 trending videos
+### Top 100 Trending Videos
 
 ```{r echo=FALSE, fig.width=12, fig.height=8, Univariate_Plots5,warning=FALSE}
 top100_trending <- yt_trending[1:100]
 
-top100_category_names_plot <- ggplot(top100_trending,aes(x=category_name,
-                                                         fill=category_id))+
+top100_category_names_plot <- ggplot(top100_trending,aes(x=category_name))+
   geom_bar()+
   theme(axis.text.x = element_text(angle = 45,hjust = 1))+
   xlab("Categories in Top 100 trending videos")
@@ -308,23 +314,23 @@ present in the top 100 trending videos.
 <br>
 ```{r echo=FALSE, warning=FALSE, Univariate_Plots6}
 top100_likes_plot <- ggplot(top100_trending,aes(x=top100_trending$likes))+
-  geom_histogram(bins=50)+
+  geom_histogram(bins=50,fill="chartreuse2")+
   scale_x_log10(limits=c(1,100000000))+
   xlab("log10 of number of likes on videos")
 
 top100_dislikes_plot <- ggplot(top100_trending,aes(x=top100_trending$dislikes))+
-  geom_histogram(bins=50)+
+  geom_histogram(bins=50,fill="red")+
   scale_x_log10(limits=c(1,100000000))+
   xlab("log10(number of dislikes)")
 
 top100_views_plot <- ggplot(top100_trending,aes(x=top100_trending$views))+
-  geom_histogram(bins=50)+
+  geom_histogram(bins=50,fill="dodgerblue4")+
   scale_x_log10(limits=c(1,100000000))+
   xlab("log10(number of views)")
 
 top100_comments_plot <- ggplot(top100_trending,
                                aes(x=top100_trending$comment_count))+
-  geom_histogram(bins=50)+
+  geom_histogram(bins=50,fill="darkorchid")+
   scale_x_log10(limits=c(1,100000000))+
   xlab("log10(number of comments)")
 
@@ -368,14 +374,14 @@ The **mean**, **median** and **maximum** number of comments are 11,980, 4,667
 and 203,900 respectively.
 <br>
 <br>
-Comparing these statistics to those for the entire distribution, all of these 
-statistics are higher than those for the entire distribution.
+Comparing these statistics to those for the entire distribution, **all of these 
+statistics are higher than those for the entire distribution**.
 
 ___
 
 ```{r echo=FALSE, warning=FALSE, Univariate_Plots7}
 ggplot(top100_trending,aes(x=top100_trending$days_on_trending))+
-  geom_bar()+
+  geom_bar(fill="deeppink")+
   xlab("Days on trending")
 
 summary(top100_trending$days_on_trending)
@@ -464,9 +470,466 @@ Some features like **tags**, **thubnail_link** and **description** were removed
 from the dataset as they took a lot of space on printing and were irrelevant to 
 our analysis.
 
+Log10 transform was applied in multiple plots to convey the scale and variation 
+in the data as required.
+
 Also, the same video which as trending on nultiple days was reduced to a single 
 entry on the day it had the highest views.
 
 ___
 ___
 
+# Bivariate Plots Section
+
+```{r echo=FALSE, Bivariate_Plots}
+corrplot_overall <- corrplot.mixed(corr = cor(yt_trending[,c("views",
+                                         "likes",
+                                         "dislikes",
+                                         "comment_count",
+                                         "days_on_trending"),with=F]))
+
+#ggpairs(yt_trending[,c("views",
+                       #"likes",
+                       #"dislikes",
+                       #"comment_count",
+                       #"days_on_trending")])
+
+```
+
+The above correlation matrix helps in identifying some of the interesting trends
+ in the data.
+ 
+We have a high correlation between
+
+* the **number of views** and **number of likes**, and 
+* the **number of dislikes** and **comment count**.
+
+<br>
+But, before we plot scatter plots to visualize these correlations, we have to 
+normalize the data ranges of the above mentioned four features.
+
+<br>
+After normalizing to be in the range of [0,1]. We get the following output:
+
+
+```{r echo=FALSE, warning=FALSE, fig.width=12, fig.height=6, Bivariate_Plots2}
+range01 <- function(x){(x-min(x))/(max(x)-min(x))}
+
+normalized_values <- select(yt_trending,views,likes,dislikes,comment_count)
+
+normalized_values$views <- range01(normalized_values$views)
+normalized_values$likes <- range01(normalized_values$likes)
+normalized_values$dislikes <- range01(normalized_values$dislikes)
+normalized_values$comment_count <- range01(normalized_values$comment_count)
+head(normalized_values)
+
+views_likes_plot <- ggplot(normalized_values,
+                           aes(x=normalized_values$views,
+                               y=normalized_values$likes))+
+  geom_point(alpha=0.2,colour="chartreuse2")+
+  geom_abline(slope=1,intercept=0)+
+  xlab("Normalized views")+
+  ylab("Normalized likes")
+
+dislikes_commentCount_plot <- ggplot(normalized_values,
+                           aes(x=normalized_values$dislikes,
+                               y=normalized_values$comment_count))+
+  geom_point(alpha=0.2,colour="darkorchid")+
+  geom_abline(slope=1,intercept=0)+
+  xlab("Normalized dislikes")+
+  ylab("Normalized comment count")
+
+grid.arrange(views_likes_plot,dislikes_commentCount_plot,ncol=2)
+```
+
+Using suitable limits for the X and Y axis:
+
+```{r echo=FALSE, warning=FALSE, fig.width=12, fig.height=6, Bivariate_Plots3}
+views_likes_plot <- ggplot(normalized_values,
+                           aes(x=normalized_values$views,
+                               y=normalized_values$likes))+
+  geom_point(alpha=0.2,colour="chartreuse2")+
+  geom_abline(slope=1,intercept=0)+
+  xlim(0,0.3)+
+  ylim(0,0.3)+
+  xlab("Normalized views")+
+  ylab("Normalized likes")
+
+dislikes_commentCount_plot <- ggplot(normalized_values,
+                           aes(x=normalized_values$dislikes,
+                               y=normalized_values$comment_count))+
+  geom_point(alpha=0.2,colour="darkorchid")+
+  geom_abline(slope=1,intercept=0)+
+  xlim(0,0.15)+
+  ylim(0,0.15)+
+  xlab("Normalized dislikes")+
+  ylab("Normalized comment count")
+
+grid.arrange(views_likes_plot,dislikes_commentCount_plot,ncol=2)
+```
+
+We can clearly observe the correlation that we found out previously using 
+the correlation matrix.
+
+
+We can see the variation in the features of **likes**, **dislikes**, **comment 
+count** and **days on trending** in the following plots.
+
+```{r echo=FALSE, warning=FALSE, fig.width=12, fig.height=8, Bivariate_Plots4}
+likes_views_plot <- ggplot(yt_trending,
+       aes(y=yt_trending$likes,x=yt_trending$views))+
+  geom_point(alpha=0.05,colour="chartreuse2")+
+  geom_abline(slope=1,intercept=0)+
+  scale_x_log10()+
+  scale_y_log10()+
+  xlab("log10(views)")+
+  ylab("log10(likes)")
+
+dislikes_views_plot <- ggplot(yt_trending,
+       aes(y=yt_trending$dislikes,x=yt_trending$views))+
+  geom_point(alpha=0.05,colour="red")+
+  geom_abline(slope=1,intercept=0)+
+  scale_x_log10()+
+  scale_y_log10()+
+  xlab("log10(views)")+
+  ylab("log10(dislikes)")
+
+comments_views_plot <- ggplot(yt_trending,
+       aes(y=yt_trending$comment_count,x=yt_trending$views))+
+  geom_point(alpha=0.05,colour="darkorchid")+
+  geom_abline(slope=1,intercept=0)+
+  scale_x_log10()+
+  scale_y_log10()+
+  xlab("log10(views)")+
+  ylab("log10(comment count)")
+
+daysOnTrending_views_plot <- ggplot(yt_trending,
+       aes(y=yt_trending$days_on_trending,x=yt_trending$views))+
+  geom_point(alpha=0.05,colour="deeppink")+
+  geom_abline(slope=1,intercept=0)+
+  scale_x_log10()+
+  scale_y_continuous(breaks=seq(0,14,1))+
+  xlab("log10(views)")+
+  ylab("days on trending")
+
+grid.arrange(likes_views_plot,
+             dislikes_views_plot,
+             comments_views_plot,
+             daysOnTrending_views_plot,
+             ncol=2)
+```
+
+The notable but not considerable correlations like in between **views** and 
+**dislikes** and that between **views** and **comment count** are visible here.
+
+As the number of views increases, the other features also increase which is in 
+agreement with our calculated statistics in the univariate plots section.
+
+Moreover, only a small number of videos trend for 10 days or more.
+<br>
+
+
+```{r echo=FALSE, warning=FALSE, fig.width=12, fig.height=15, Bivariate_Plots5}
+category_views_boxplot <- ggplot(yt_trending,aes(x=category_name,y=views))+
+  geom_boxplot(alpha=0.1,colour="dodgerblue4")+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  scale_y_log10()+
+  ylab("log10(views)")+
+  xlab("category name")
+
+category_likes_boxplot <- ggplot(yt_trending,aes(x=category_name,y=likes))+
+  geom_boxplot(alpha=0.1,colour="chartreuse2")+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  scale_y_log10()+
+  ylab("log10(likes)")+
+  xlab("category name")
+
+category_dislikes_boxplot <- ggplot(yt_trending,aes(x=category_name,
+                                                    y=dislikes))+
+  geom_boxplot(alpha=0.1,colour="red")+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  scale_y_log10()+
+  ylab("log10(dislikes)")+
+  xlab("category name")
+
+category_commentCount_boxplot <- ggplot(yt_trending,aes(x=category_name,
+                                                        y=comment_count))+
+  geom_boxplot(alpha=0.1,colour="darkorchid")+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  scale_y_log10()+
+  ylab("log10(comment count)")+
+  xlab("category name")
+
+category_daysOnTrending_boxplot <- ggplot(yt_trending,aes(x=category_name,
+                                                          y=days_on_trending))+
+  geom_boxplot(alpha=0.1,colour="deeppink")+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  scale_y_log10()+
+  scale_y_continuous(breaks=seq(0,14,1))+
+  ylab("days on trending")+
+  xlab("category name")
+
+grid.arrange(category_views_boxplot,
+             category_likes_boxplot,
+             category_dislikes_boxplot,
+             category_commentCount_boxplot,
+             category_daysOnTrending_boxplot,
+             ncol = 2)
+```
+
+The categories of **Entertainment** and **Music** have very high values for all 
+the features across the board.
+
+**Nonprofits & Activism** have the lowest median and 1<sup>st</sup> 
+quantile values for nearly all the features.
+
+**Shows** show a very small difference between the 3<sup>rd</sup> and 
+1<sup>st</sup> quantile for all the features. They also have the highest median,
+1<sup>st</sup> and 3<sup>rd</sup> quantile value for **days on trending**.
+
+___
+
+### Top 100 Trending Videos
+
+In the univariated plots and analysis sections, we observed that the trends in 
+the entire dataset were more pronounced in the Top 100 Trending Videos.
+
+We check if this is true for the correlations that we observed at the beginning 
+of the bivariate plots section.
+
+```{r echo=FALSE, Bivariate_Plots6}
+corrplot_top100 <- corrplot.mixed(corr = cor(top100_trending[,c("views",
+                                         "likes",
+                                         "dislikes",
+                                         "comment_count",
+                                         "days_on_trending"),with=F]))
+
+# ggpairs(top100_trending[,c("views",
+#                        "likes",
+#                        "dislikes",
+#                        "comment_count",
+#                        "days_on_trending")])
+```
+
+
+The changes in the correlations from those of the entire dataset are:
+
+* Minor increase from 0.81 to 0.85 between **views** and **likes** 
+* Drastic reduction from 0.83 to 0.36 between **dislikes** and **comment count**
+* Of the other correlations, some has increased and some have decreased
+
+Again before plotting, we first normalize the values of the features to be in 
+the range [0,1].
+
+```{r echo=FALSE, warning=FALSE, fig.width=12, fig.height=6, Bivariate_Plots7}
+normalized_top100_trending <- select(top100_trending,
+                                     views,
+                                     likes,
+                                     dislikes,
+                                     comment_count)
+
+normalized_top100_trending$views <- range01(top100_trending$views)
+normalized_top100_trending$likes <- range01(top100_trending$likes)
+normalized_top100_trending$dislikes <- range01(top100_trending$dislikes)
+normalized_top100_trending$comment_count <- 
+  range01(top100_trending$comment_count)
+
+head(normalized_top100_trending)
+
+
+top100_views_likes_plot <- ggplot(normalized_top100_trending,
+                           aes(x=normalized_top100_trending$views,
+                               y=normalized_top100_trending$likes))+
+  geom_point(alpha=0.5,colour="chartreuse2")+
+  geom_abline(slope=1,intercept=0)+
+  xlim(0,0.3)+
+  ylim(0,0.3)+
+  xlab("Normalized views")+
+  ylab("Normalized likes")
+
+top100_views_dislikes_plot <- ggplot(normalized_top100_trending,
+                           aes(x=normalized_top100_trending$views,
+                               y=normalized_top100_trending$dislikes))+
+  geom_point(alpha=0.5,colour="red")+
+  geom_abline(slope=1,intercept=0)+
+  xlim(0,0.3)+
+  ylim(0,0.3)+
+  xlab("Normalized views")+
+  ylab("Normalized dislikes")
+
+grid.arrange(top100_views_likes_plot,top100_views_dislikes_plot,ncol=2)
+```
+
+We can observe the correlation that we found from the correlation matrix above.
+
+```{r echo=FALSE, warning=FALSE, fig.width=12, fig.height=8, Bivariate_Plots8}
+top100_likes_views_plot <- ggplot(top100_trending,
+       aes(y=top100_trending$likes,x=top100_trending$views))+
+  geom_point(alpha=0.5,colour="chartreuse2")+
+  geom_abline(slope=1,intercept=0)+
+  scale_x_log10()+
+  scale_y_log10()+
+  xlab("log10(views)")+
+  ylab("log10(likes)")
+
+top100_dislikes_views_plot <- ggplot(top100_trending,
+       aes(y=top100_trending$dislikes,x=top100_trending$views))+
+  geom_point(alpha=0.5,colour="red")+
+  geom_abline(slope=1,intercept=0)+
+  scale_x_log10()+
+  scale_y_log10()+
+  xlab("log10(views)")+
+  ylab("log10(dislikes)")
+
+top100_comments_views_plot <- ggplot(top100_trending,
+       aes(y=top100_trending$comment_count,x=top100_trending$views))+
+  geom_point(alpha=0.5,colour="darkorchid")+
+  geom_abline(slope=1,intercept=0)+
+  scale_x_log10()+
+  scale_y_log10()+
+  xlab("log10(views)")+
+  ylab("log10(comment count)")
+
+top100_daysOnTrending_views_plot <- ggplot(top100_trending,
+       aes(y=top100_trending$days_on_trending,x=top100_trending$views))+
+  geom_point(alpha=0.5,colour="deeppink")+
+  geom_abline(slope=1,intercept=0)+
+  scale_x_log10()+
+  scale_y_continuous(breaks=seq(0,14,1))+
+  xlab("log10(views)")+
+  ylab("days on trending")
+
+grid.arrange(top100_likes_views_plot,
+             top100_dislikes_views_plot,
+             top100_comments_views_plot,
+             top100_daysOnTrending_views_plot,
+             ncol=2)
+```
+
+The data points are further away from the y=x line and hence overall, with 
+**views** the other features are less correlated.
+
+Also, videos in the Top 100 Trending Videos trend for either 12, 13 or 14 days 
+only.
+
+```{r echo=FALSE, warning=FALSE, fig.width=12, fig.height=25, Bivariate_Plots9}
+top100_category_views_boxplot <- ggplot(top100_trending,aes(x=category_name,y=views))+
+  geom_boxplot(alpha=0.1,colour="dodgerblue4")+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  scale_y_log10()+
+  ylab("log10(views)")+
+  xlab("category name")
+
+
+top100_category_likes_boxplot <- ggplot(top100_trending,aes(x=category_name,y=likes))+
+  geom_boxplot(alpha=0.1,colour="chartreuse2")+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  scale_y_log10()+
+  ylab("log10(likes)")+
+  xlab("category name")
+
+top100_category_dislikes_boxplot <- ggplot(top100_trending,aes(x=category_name,
+                                                    y=dislikes))+
+  geom_boxplot(alpha=0.1,colour="red")+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  scale_y_log10()+
+  ylab("log10(dislikes)")+
+  xlab("category name")
+
+top100_category_commentCount_boxplot <- ggplot(top100_trending,aes(x=category_name,
+                                                        y=comment_count))+
+  geom_boxplot(alpha=0.1,colour="darkorchid")+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  scale_y_log10()+
+  ylab("log10(comment count)")+
+  xlab("category name")
+
+top100_category_daysOnTrending_boxplot <- ggplot(top100_trending,aes(x=category_name,
+                                                          y=days_on_trending))+
+  geom_boxplot(alpha=0.1,colour="deeppink")+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  scale_y_log10()+
+  scale_y_continuous(breaks=seq(0,14,1))+
+  ylab("days on trending")+
+  xlab("category name")
+
+grid.arrange(top100_category_views_boxplot,
+             category_views_boxplot,
+             top100_category_likes_boxplot,
+             category_likes_boxplot,
+             top100_category_dislikes_boxplot,
+             category_dislikes_boxplot,
+             top100_category_commentCount_boxplot,
+             category_commentCount_boxplot,
+             top100_category_daysOnTrending_boxplot,
+             category_daysOnTrending_boxplot,
+             ncol = 2)
+```
+
+The plots from **Top 100 Trending Videos are on the left** and those from the 
+**entire dataset are on the right**.
+
+The subsetting of data for the Top 100 Trending Videos is clearly visible with 
+the absence of a lot of data points.
+
+The trend of **Entertainment** and **Music** having values across all the 
+features still continues but is a lot less pronounced with other categories like
+ **Film/Animation** and **People & Blogs** coming close.
+ 
+ **Pets & Animals** is surprising the category with the highest median, 
+ 1<sup>st</sup> and 3<sup>rd</sup> quantile values in the Top 100 Trending 
+ Videos.
+
+___
+___
+
+# Bivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the \
+investigation. How did the feature(s) of interest vary with other features in \
+the dataset?
+
+We have a high correlation between:
+
+* the **number of views** and **number of likes**, and 
+* the **number of dislikes** and **comment count**
+
+in the dataset containing the all of the data but not in the Top 100 Trending 
+Videos.
+
+**Nonprofits & Activism** have the lowest median and 1<sup>st</sup> 
+quantile values for nearly all the features.
+
+**Shows** show a very small difference between the 3<sup>rd</sup> and 
+1<sup>st</sup> quantile for all the features. They also have the highest median,
+1<sup>st</sup> and 3<sup>rd</sup> quantile value for **days on trending**.
+
+**Nonprofits & Activism** have the lowest median and 1<sup>st</sup> 
+quantile values for nearly all the features.
+
+**Shows** show a very small difference between the 3<sup>rd</sup> and 
+1<sup>st</sup> quantile for all the features. They also have the highest median,
+1<sup>st</sup> and 3<sup>rd</sup> quantile value for **days on trending**.
+
+In the Top 100 Trending Videos, the trend of **Entertainment** and **Music** 
+having values across all the features still continues but is a lot less 
+pronounced with other categories like **Film/Animation** and **People & Blogs**
+coming close.
+ 
+ **Pets & Animals** is surprising the category with the highest median, 
+ 1<sup>st</sup> and 3<sup>rd</sup> quantile values in the Top 100 Trending 
+ Videos.
+
+### Did you observe any interesting relationships between the other features \
+(not the main feature(s) of interest)?
+
+In the Top 100 Trending Videos subset of the dataset, the **Pets & Animals** 
+category has the highest median, 1<sup>st</sup> and 3<sup>rd</sup> quantile values.
+
+### What was the strongest relationship you found?
+
+The strongest correlation was between **views** and **likes** with 0.83 in the 
+complete dataset and 0.85 in the Top 100 Trending Videos.
+
+___
+___
