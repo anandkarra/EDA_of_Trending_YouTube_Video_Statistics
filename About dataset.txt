@@ -3,3 +3,5 @@ YouTube (the world-famous video sharing website) maintains a list of the top tre
 This dataset is a daily record of the top trending YouTube videos.
 
 This dataset includes several months (and counting) of data on daily trending YouTube videos with up to 200 listed trending videos per day.
+
+The dataset can be downloaded from here: https://www.kaggle.com/datasnaek/youtube-new
