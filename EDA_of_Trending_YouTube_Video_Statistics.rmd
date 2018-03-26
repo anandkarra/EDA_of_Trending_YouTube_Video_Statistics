@@ -1,22 +1,81 @@
 ---
 output: 
   html_document: 
-    fig_height: 8
+    fig_height: 6
     fig_width: 12
-    toc: yes
-    toc_depth: 2
-  pdf_document: 
-    latex_engine: xelatex
-    toc: yes
-    toc_depth: 2
-editor_options: 
-  chunk_output_type: inline
 ---
----
-title: "EDA of Trending YouTube Video Statistics"
-author: "Karra Anand"
-date: "18 March 2018"
-output: html_document
+# **EDA of YouTube Trending Statistics**
+
+#### **Exploratory Data Analysis** | Udacity **Data Analyst Nanodegree**
+
+<br>
+<h3 style="text-align:left;"><b>Karra Anand</b></h3>
+<h3 style="text-align:left;">26<sup>th</sup> March 2018</h3>
+<h4 style="text-align:left;">Version: 1</h3>
+___
+___
+
+
+<h2>Table of Contents</h2>
+<ul>
+<li><a href="#about-the-dataset"><b>About the dataset</b></a></li>
+<li><a href="#preprocessing"><b>Preprocessing</b></a></li>
+<a href="#cleaning-irrelevant-columns">&nbsp;&nbsp;&nbsp;&nbsp;
+Cleaning irrelevant columns
+</a><br>
+<a href="#converting-into-a-data-table">&nbsp;&nbsp;&nbsp;&nbsp;
+Converting into a data.table
+</a><br>
+<a href="#adding-category-names">&nbsp;&nbsp;&nbsp;&nbsp;
+Adding category names
+</a><br>
+<a href="#adding-number-of-videos-trending">&nbsp;&nbsp;&nbsp;&nbsp;
+Adding number_of_videos_trending
+</a><br>
+<a href="#adding-and-sorting-by-days-on-trending">&nbsp;&nbsp;&nbsp;&nbsp;
+Adding and sorting by days_on_trending
+</a><br>
+<a href="#creating-a-data-table-sorted-by-number-of-videos-trending">
+&nbsp;&nbsp;&nbsp;&nbsp;
+Creating a data.table sorted by number_of_videos_trending
+</a><br>
+<a href="#removing-duplicate-entries">&nbsp;&nbsp;&nbsp;&nbsp;
+Removing duplicate entries
+</a>
+<li><a href="#univariate-plots-section"><b>Univariate Plots section</b></a></li>
+<a href="#univariate-top100-trending-videos">&nbsp;&nbsp;&nbsp;&nbsp;
+Top 100 Trending Videos
+</a>
+<li><a href="#bivariate-plots-section"><b>Bivariate Plots Section</b></a></li>
+<a href="#bivariate-top100-trending-videos">&nbsp;&nbsp;&nbsp;&nbsp;
+Top 100 Trending Videos
+</a>
+<li><a href="#bivariate-analysis"><b>Bivariate Analysis</b></a></li>
+<li><a href="#multivariate-plots-section"><b>Multivariate Plots Section
+</b></a></li>
+<li><a href="#multivariate-analysis"><b>Multivariate Analysis</b></a></li>
+<li><a href="#final-plots-and-summary"><b>Final Plots and Summary</b></a></li>
+<a href="#plot-one">&nbsp;&nbsp;&nbsp;&nbsp;
+Plot One
+</a><br>
+<a href="#description-one">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Description One
+</a><br>
+<a href="#plot-two">&nbsp;&nbsp;&nbsp;&nbsp;
+Plot Two
+</a><br>
+<a href="#description-two">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Description Two
+</a><br>
+<a href="#plot-three">&nbsp;&nbsp;&nbsp;&nbsp;
+Plot Three
+</a><br>
+<a href="#description-three">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Description Three
+</a>
+<li><a href="#reflection"><b>Reflection</b></a></li>
+</ul>
+
 ___
 ___
 
@@ -31,23 +90,27 @@ library(GGally)
 ```
 
 ```{r echo=FALSE, Load_the_Data}
-# Load the Data
 yt_trending = read.csv('USvideos.csv')
 ```
 
+
+<a id='about-the-dataset'></a>
+
 ## About the dataset
+
 YouTube (the world-famous video sharing website) maintains a list of the top 
 trending videos on the platform. This dataset is a daily record of the top 
 trending YouTube videos. <br>
 This dataset includes several months (and counting) of data on daily trending 
 YouTube videos. Data is included for the USA, with up to 200 listed trending 
 videos per day. <br>
-More details about this dataset are present in `About_datasat.txt` included with 
+More details about this dataset are present in `About_dataset.txt` included with 
 this project
 
 ___
 ___
 
+<a id='preprocessing'></a>
 
 ## Preprocessing
 Before we move on to plotting and analyzing the data, let us see if the data 
@@ -67,6 +130,8 @@ head(yt_trending,n=2)
 
 ___
 
+<a id='cleaning-irrelevant-columns'></a>
+
 ### Cleaning irrelevant columns
 As we are only interested in exploratory analysis of the data, we remove the 
 columns of **tags**, **thumbnail_link** and **description** since they are 
@@ -83,6 +148,8 @@ dim(yt_trending)
 
 ___
 
+<a id='converting-into-a-data-table'></a>
+
 ### Converting into a data.table
 From the dimensions of the dataframe in the above output, we have
 the data for 23,362 videos(assuming there are no duplicates across 13 features; 
@@ -92,7 +159,10 @@ we shall investigate  this the following sections). Hence, we use the data.table
 ```{r echo=TRUE, preprocessing_3}
 yt_trending <- data.table(yt_trending)
 ```
+
 ___
+
+<a id='adding-category-names'></a>
 
 ### Adding category names
 Further we observe that, we have names of each of the **category_id** (as part
@@ -121,12 +191,37 @@ yt_trending <- yt_trending[order(yt_trending$views,decreasing = TRUE),]
 
 ___
 
+<a id='adding-number-of-videos-trending'></a>
+
+### Adding number_of_videos_trending
+The number of videos each channel has in the trending videos is added to the 
+dataset.
+
+```{r echo=TRUE, preprocessing_5}
+number_of_videos_trending_channel_title <- 
+  (count(yt_trending,yt_trending$channel_title))[1]
+number_of_videos_trending_count <-
+  (count(yt_trending,yt_trending$channel_title))[2]
+number_of_videos_trending <- data.table(number_of_videos_trending_channel_title,
+                                        number_of_videos_trending_count)
+
+setnames(number_of_videos_trending,old="yt_trending$channel_title",
+         new="channel_title")
+setnames(number_of_videos_trending,old="n",new="number_of_videos_trending")
+
+yt_trending <- merge(yt_trending,number_of_videos_trending)
+```
+
+___
+
+<a id='adding-and-sorting-by-days-on-trending'></a>
+
 ### Adding and sorting by days_on_trending
 We are most interested here in analyzing the trends in the trending videos,
 and we do not have a columnn to indicate the number of days a video was on 
 trending, we add that column here.
 
-```{r echo=TRUE, preprocessing_5}
+```{r echo=TRUE, preprocessing_6}
 days_on_trending_video_id <- (count(yt_trending,yt_trending$video_id))[1]
 days_on_trending_num_of_days <- (count(yt_trending,yt_trending$video_id))[2]
 days_on_trending <- data.table(days_on_trending_video_id,
@@ -135,7 +230,7 @@ days_on_trending <- data.table(days_on_trending_video_id,
 setnames(days_on_trending,old="yt_trending$video_id",new="video_id")
 setnames(days_on_trending,old="n",new="days_on_trending")
 
-yt_trending <- merge(yt_trending,days_on_trending)
+yt_trending <- merge(yt_trending,days_on_trending,by="video_id")
 
 yt_trending <- yt_trending[order(yt_trending$days_on_trending,
                                  yt_trending$views,
@@ -144,17 +239,36 @@ yt_trending <- yt_trending[order(yt_trending$days_on_trending,
 
 ___
 
-### Removing duplicate video entries
+<a id='creating-a-data-table-sorted-by-number-of-videos-trending'></a>
+
+### Creating a data.table sorted by number_of_videos_trending
+As per the requirement in the Bivariate Plots section for analysing the top 
+trending channels.
+
+```{r echo=TRUE, preprocessing_7}
+yt_trending_by_number_of_videos_trending <-
+  yt_trending[order(yt_trending$number_of_videos_trending,
+                    yt_trending$views,
+                    decreasing = TRUE),]
+```
+___
+
+<a id='removing-duplicate-entries'></a>
+
+### Removing duplicate entries
 We sort the videos in decreasing order of their number of days on trending.
 
-```{r echo=TRUE, preprocessing_6}
+```{r echo=TRUE, preprocessing_8}
 yt_trending <- unique(yt_trending, by = c("video_id"))
-
-head(yt_trending)
+yt_trending_by_number_of_videos_trending <- unique(
+  yt_trending_by_number_of_videos_trending,
+  by=c("channel_title"))
 ```
 
 ___
 ___
+
+<a id='univariate-plots-section'></a>
 
 ## Univariate Plots Section
 
@@ -190,8 +304,8 @@ and 585 videos respectively closely followed by **Howto & Style** with 436
 videos. We can also see their respective shares out of the total.
 <br>
 <br>
-Also, some categories like **Action/Adventure**, **Anime/Animation** etc. have no 
-videos.
+Also, some categories like **Action/Adventure**, **Anime/Animation** etc. have 
+no videos.
 
 ___
 
@@ -296,6 +410,8 @@ With videos trending for an average of about 5 days and a maximum of 14 days.
 
 ___
 
+<a id='univariate-top100-trending-videos'></a>
+
 ### Top 100 Trending Videos
 
 ```{r echo=FALSE, fig.width=12, fig.height=8, Univariate_Plots5,warning=FALSE}
@@ -389,9 +505,10 @@ summary(top100_trending$days_on_trending)
 
 Videos in the Top 100 trending videos trend for an average of 13 days with a 
 maximum of 14 days.
+___
+___
 
-___
-___
+<a id='univariate-analysis'></a>
 
 ## Univariate Analysis
 
@@ -432,6 +549,7 @@ trending with a total of 1141 videos.
 days.
 
 ___
+
 
 ### What is/are the main feature(s) of interest in your dataset?
 
@@ -479,6 +597,8 @@ entry on the day it had the highest views.
 ___
 ___
 
+<a id='bivariate-plots-section'></a>
+
 # Bivariate Plots Section
 
 ```{r echo=FALSE, Bivariate_Plots}
@@ -488,11 +608,11 @@ corrplot_overall <- corrplot.mixed(corr = cor(yt_trending[,c("views",
                                          "comment_count",
                                          "days_on_trending"),with=F]))
 
-#ggpairs(yt_trending[,c("views",
-                       #"likes",
-                       #"dislikes",
-                       #"comment_count",
-                       #"days_on_trending")])
+ggpairs(yt_trending[,c("views",
+"likes",
+"dislikes",
+"comment_count",
+"days_on_trending")])
 
 ```
 
@@ -628,8 +748,25 @@ agreement with our calculated statistics in the univariate plots section.
 Moreover, only a small number of videos trend for 10 days or more.
 <br>
 
+Before we compare how the different features vary across the different 
+categories, we take a look at the top 25 trending channels.
+```{r echo=FALSE, Bivariate_Plots4_2}
+ggplot(yt_trending_by_number_of_videos_trending[1:25,],
+       aes(x=channel_title,y=number_of_videos_trending))+
+  geom_density()+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  scale_y_continuous(breaks=seq(0,140,10))+
+  xlab("Channel title")+
+  ylab("Number of videos trending")
+```
 
-```{r echo=FALSE, warning=FALSE, fig.width=12, fig.height=15, Bivariate_Plots5}
+**ESPN**, **Vox** and **Netflix** are the top 3 channels (in that order) in 
+terms of number of trending videos.
+
+How these trending channels vary across the categories is something that we will
+take a look at in the multivariate plots section.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=12, fig.height=15, Bivariate_Plots5}
 category_views_boxplot <- ggplot(yt_trending,aes(x=category_name,y=views))+
   geom_boxplot(alpha=0.1,colour="dodgerblue4")+
   theme(axis.text.x = element_text(angle = 45,hjust = 1))+
@@ -669,12 +806,41 @@ category_daysOnTrending_boxplot <- ggplot(yt_trending,aes(x=category_name,
   ylab("days on trending")+
   xlab("category name")
 
+category_numberOfVideosTrending <- ggplot(yt_trending,
+                                           aes(x=category_name,
+                                               y=number_of_videos_trending))+
+  geom_boxplot(alpha=0.1)+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  scale_y_log10()+
+  scale_y_continuous(breaks=seq(0,140,20))+
+  ylab("Number of videos trending")+
+  xlab("category name")
+
 grid.arrange(category_views_boxplot,
              category_likes_boxplot,
              category_dislikes_boxplot,
              category_commentCount_boxplot,
              category_daysOnTrending_boxplot,
+             category_numberOfVideosTrending,
              ncol = 2)
+
+print("Summary for views feature:")
+summary(yt_trending$views)
+
+print("Summary for likes feature:")
+summary(yt_trending$likes)
+
+print("Summary for dislikes feature:")
+summary(yt_trending$dislikes)
+
+print("Summary for comment count feature:")
+summary(yt_trending$comment_count)
+
+print("Summary for days on trending feature:")
+summary(yt_trending$days_on_trending)
+
+print("Summary for number of trending videos feature:")
+summary(yt_trending$number_of_videos_trending)
 ```
 
 The categories of **Entertainment** and **Music** have very high values for all 
@@ -687,7 +853,12 @@ quantile values for nearly all the features.
 1<sup>st</sup> quantile for all the features. They also have the highest median,
 1<sup>st</sup> and 3<sup>rd</sup> quantile value for **days on trending**.
 
+Overall, it seems that **Shows** is one category that consistently appears on
+trending.
+
 ___
+
+<a id='bivariate-top100-trending-videos'></a>
 
 ### Top 100 Trending Videos
 
@@ -704,15 +875,15 @@ corrplot_top100 <- corrplot.mixed(corr = cor(top100_trending[,c("views",
                                          "comment_count",
                                          "days_on_trending"),with=F]))
 
-# ggpairs(top100_trending[,c("views",
-#                        "likes",
-#                        "dislikes",
-#                        "comment_count",
-#                        "days_on_trending")])
+ggpairs(top100_trending[,c("views",
+                       "likes",
+                       "dislikes",
+                       "comment_count",
+                       "days_on_trending")])
 ```
 
 
-The changes in the correlations from those of the entire dataset are:
+The changes in these correlations from those of the entire dataset are:
 
 * Minor increase from 0.81 to 0.85 between **views** and **likes** 
 * Drastic reduction from 0.83 to 0.36 between **dislikes** and **comment count**
@@ -812,17 +983,24 @@ The data points are further away from the y=x line and hence overall, with
 Also, videos in the Top 100 Trending Videos trend for either 12, 13 or 14 days 
 only.
 
-```{r echo=FALSE, warning=FALSE, fig.width=12, fig.height=25, Bivariate_Plots9}
-top100_category_views_boxplot <- ggplot(top100_trending,aes(x=category_name,y=views))+
-  geom_boxplot(alpha=0.1,colour="dodgerblue4")+
+In this part, we try to find how the various features vary in the Top 100 
+Trending Videos vary from those in the entire dataset.
+
+The plots from **Top 100 Trending Videos are on the right** and those from the 
+**entire dataset are on the left**.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=12, fig.height=25, Bivariate_Plots9}
+top100_category_views_boxplot <- ggplot(top100_trending,
+                                        aes(x=category_name,y=views))+
+  geom_boxplot(colour="dodgerblue4")+
   theme(axis.text.x = element_text(angle = 45,hjust = 1))+
   scale_y_log10()+
   ylab("log10(views)")+
   xlab("category name")
 
-
-top100_category_likes_boxplot <- ggplot(top100_trending,aes(x=category_name,y=likes))+
-  geom_boxplot(alpha=0.1,colour="chartreuse2")+
+top100_category_likes_boxplot <- ggplot(top100_trending,
+                                        aes(x=category_name,y=likes))+
+  geom_boxplot(colour="chartreuse2")+
   theme(axis.text.x = element_text(angle = 45,hjust = 1))+
   scale_y_log10()+
   ylab("log10(likes)")+
@@ -830,58 +1008,134 @@ top100_category_likes_boxplot <- ggplot(top100_trending,aes(x=category_name,y=li
 
 top100_category_dislikes_boxplot <- ggplot(top100_trending,aes(x=category_name,
                                                     y=dislikes))+
-  geom_boxplot(alpha=0.1,colour="red")+
+  geom_boxplot(colour="red")+
   theme(axis.text.x = element_text(angle = 45,hjust = 1))+
   scale_y_log10()+
   ylab("log10(dislikes)")+
   xlab("category name")
 
-top100_category_commentCount_boxplot <- ggplot(top100_trending,aes(x=category_name,
+top100_category_commentCount_boxplot <- ggplot(top100_trending,
+                                               aes(x=category_name,
                                                         y=comment_count))+
-  geom_boxplot(alpha=0.1,colour="darkorchid")+
+  geom_boxplot(colour="darkorchid")+
   theme(axis.text.x = element_text(angle = 45,hjust = 1))+
   scale_y_log10()+
   ylab("log10(comment count)")+
   xlab("category name")
 
-top100_category_daysOnTrending_boxplot <- ggplot(top100_trending,aes(x=category_name,
+top100_category_daysOnTrending_boxplot <- ggplot(top100_trending,
+                                                 aes(x=category_name,
                                                           y=days_on_trending))+
-  geom_boxplot(alpha=0.1,colour="deeppink")+
+  geom_boxplot(colour="deeppink")+
   theme(axis.text.x = element_text(angle = 45,hjust = 1))+
   scale_y_log10()+
   scale_y_continuous(breaks=seq(0,14,1))+
   ylab("days on trending")+
   xlab("category name")
 
-grid.arrange(top100_category_views_boxplot,
-             category_views_boxplot,
-             top100_category_likes_boxplot,
-             category_likes_boxplot,
-             top100_category_dislikes_boxplot,
-             category_dislikes_boxplot,
-             top100_category_commentCount_boxplot,
-             category_commentCount_boxplot,
-             top100_category_daysOnTrending_boxplot,
-             category_daysOnTrending_boxplot,
-             ncol = 2)
+top100_category_numberOfTrendingVideos_boxplot <- ggplot(top100_trending,
+                                                 aes(x=category_name,
+                                                     y=number_of_videos_trending))+
+  geom_boxplot()+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  scale_y_log10()+
+  scale_y_continuous(breaks=seq(0,140,20))+
+  ylab("Number of videos trending")+
+  xlab("category name")
 ```
 
-The plots from **Top 100 Trending Videos are on the left** and those from the 
-**entire dataset are on the right**.
+```{r echo=FALSE, message=FALSE, warning=FALSE,fig.width=12, fig.height=6, Bivariate_Plots9_0}
+grid.arrange(category_views_boxplot,
+             top100_category_views_boxplot,
+             ncol=2)
 
-The subsetting of data for the Top 100 Trending Videos is clearly visible with 
-the absence of a lot of data points.
+summary(top100_trending$views)
+```
+The most notable category in this comparision is **Sports** which has a low 
+median value in the entire dataset but the highest median, 1<sup>st</sup> and 
+3<sup>rd</sup> quantile values in the Top 100 Trending Videos.
 
-The trend of **Entertainment** and **Music** having values across all the 
-features still continues but is a lot less pronounced with other categories like
- **Film/Animation** and **People & Blogs** coming close.
+Surprisingly, the **Shows** category has completely disappeared in the Top 100 
+Trending Videos set.
+
+**Music** is the category with the second highest median value in the Top 100 
+Trending Videos closely followed by **Film & Animation** and **Comedy**.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,fig.width=12, fig.height=6, Bivariate_Plots9_1}
+grid.arrange(category_likes_boxplot,
+             top100_category_likes_boxplot,
+             ncol=2)
+
+summary(top100_trending$likes)
+```
+**Sports**, **Music** and **People & Blogs** pull quite ahead of other 
+categories in terms of **views** with both some of the highest median and 
+3<sup>rd</sup> quantile values.
+
+Also, across most of the categories, the median number of views is higher in the 
+Top 100 Trending Videos than those in the entire dataset.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,fig.width=12, fig.height=6, Bivariate_Plots9_2}
+grid.arrange(category_dislikes_boxplot,
+             top100_category_dislikes_boxplot,
+             ncol=2)
+
+summary(top100_trending$dislikes)
+```
+As we can see in the boxplot on the left for the entire datset, most of the 
+categories have their median number of dislikes close to each other. But, in 
+the Top 100 Trending Videos, we see a sharp decrease in it for the categories 
+like **Education**, **Pets & Animals**, **News & Politics** etc. 
+
+While for the popular categories like **Entertainment** and **Music** the median
+ value of dislikes is one of the highest. Number of views and dislikes had a 
+correlation of 0.71, so this is not very surprising.
  
- **Pets & Animals** is surprising the category with the highest median, 
- 1<sup>st</sup> and 3<sup>rd</sup> quantile values in the Top 100 Trending 
- Videos.
+```{r echo=FALSE, message=FALSE, warning=FALSE,fig.width=12, fig.height=6, Bivariate_Plots9_3}
+grid.arrange(category_commentCount_boxplot,
+             top100_category_commentCount_boxplot,
+             ncol=2)
+
+summary(top100_trending$comment_count)
+```
+Again, **Sports** pulls ahead of other categories with **Gaming** having the 
+second highest value in the Top 100 Trending Videos set. Also there is a sharp 
+decrease in the category of **Education**.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,fig.width=12, fig.height=6, Bivariate_Plots9_4}
+grid.arrange(category_daysOnTrending_boxplot,
+             top100_category_daysOnTrending_boxplot,
+             ncol=2)
+
+summary(top100_trending$days_on_trending)
+```
+The subsetting of the data is more readily visible for this feature that for any
+ other feature with nearly all of the values for the categories being either 12,
+ 13 or 14.
+ 
+Surprisingly, **Pets & Animals** is the category which trends for the longest 
+time in the Top 100 Trending Videos. Whereas, the **Sports** category which was 
+leading up until now in all the features has one of the lowest median value.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,fig.width=12, fig.height=6, Bivariate_Plots9_5}
+grid.arrange(category_numberOfVideosTrending,
+             top100_category_numberOfTrendingVideos_boxplot,
+             ncol=2)
+
+summary(top100_trending$number_of_videos_trending)
+```
+There is significant decrease in the number of trending videos of the **Sports**
+ category between the entire dataset and the Top 100 Trending Videos.
+ 
+While, the **Comedy** category maintains its domination even in the Top 100 
+Trending Videos set with the highest median and 3<sup>rd</sup> quantile value 
+closely followed by **News & Politics** and **Entertainment**.
 
 ___
 ___
+
+<a id='bivariate-analysis'></a>
 
 # Bivariate Analysis
 
@@ -889,13 +1143,16 @@ ___
 investigation. How did the feature(s) of interest vary with other features in \
 the dataset?
 
-We have a high correlation between:
+We have a high correlation between the **number of views** and **number of 
+likes** both in the entire dataset (0.83) and in the Top 100 Trending Videos 
+(0.85).
 
-* the **number of views** and **number of likes**, and 
-* the **number of dislikes** and **comment count**
+We also have a high correlation between the **number of dislikes** and **comment
+count** in the entire dataset (0.83) but it drastically reduces in the Top 100 
+Trending Videos (0.36).
 
-in the dataset containing the all of the data but not in the Top 100 Trending 
-Videos.
+The variation of the different features across categories varies quite widely 
+depending upon the feature under investigation.
 
 **Nonprofits & Activism** have the lowest median and 1<sup>st</sup> 
 quantile values for nearly all the features.
@@ -933,3 +1190,391 @@ complete dataset and 0.85 in the Top 100 Trending Videos.
 
 ___
 ___
+
+<a id='multivariate-plots-section'></a>
+
+# Multivariate Plots Section
+
+We have already seen the top trending channels. Here, we take a look at those 
+channels and see how they are distributed across the different categories.
+
+```{r echo=FALSE, warning=FALSE, Multivariate_Plots}
+ggplot(data=yt_trending_by_number_of_videos_trending[1:25,],
+       aes(x=channel_title, y=number_of_videos_trending, fill=category_name)) + 
+    geom_bar(stat="identity",
+             position=position_dodge(),
+             size=.3) +
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  xlab("Channel title")+
+  ylab("Number of trending videos")+
+  scale_y_continuous(breaks=seq(0,140,20))
+
+summary(
+  yt_trending_by_number_of_videos_trending[1:25,]$number_of_videos_trending)
+```
+
+All of these channels post videos only of a specific category as we can see no 
+channel having bars of different colours.
+
+Furthermore, as we saw in the bivariate plots section, the most common 
+categories are **Entertainment** and **Sports**.
+
+**ESPN** having the highest number of trending videos (114). Both the mean and 
+median of number of trending videos being 98.
+
+In the bivariate plots section, we observed how the various features vary 
+across different categories of videos. Now in this section, we can explore 
+how these features vary across the Top 25 trending channels and see the 
+classifications and conclusions of the bivariate plots section in action.
+
+```{r echo=FALSE, warning=FALSE, Multivariate_Plots_2}
+ggplot(data=yt_trending_by_number_of_videos_trending[1:25,],
+       aes(x=channel_title, y=views, fill=number_of_videos_trending)) + 
+    geom_bar(stat="identity",
+             position=position_dodge(),
+             size=.3)+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  xlab("Channel title")+
+  ylab("views")+
+  scale_y_continuous(breaks=seq(0,100000000,1000000))
+
+ggplot(data=yt_trending_by_number_of_videos_trending[1:25,],
+       aes(x=channel_title, y=views, fill=number_of_videos_trending)) + 
+    geom_bar(stat="identity",
+             position=position_dodge(),
+             size=.3)+
+  scale_y_log10()+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  xlab("Channel title")+
+  ylab("log10(views)")
+
+summary(yt_trending_by_number_of_videos_trending[1:25,]$views)
+```
+
+**ESPN**, **NBA**, **Netflix** and **Vox** are the top channels in terms of
+number of videos on trending. But, **NFL**, **WIRED** and **WWE** are very ahead
+ of these trending channels in terms of number of views.
+
+```{r echo=FALSE, warning=FALSE, Multivariate_Plots_3}
+ggplot(data=yt_trending_by_number_of_videos_trending[1:25,],
+       aes(x=channel_title, y=likes, fill=number_of_videos_trending)) + 
+    geom_bar(stat="identity",
+             position=position_dodge(),
+             size=.3)+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  xlab("Channel title")+
+  ylab("likes")+
+  scale_y_continuous(breaks=seq(0,1000000,50000))
+
+ggplot(data=yt_trending_by_number_of_videos_trending[1:25,],
+       aes(x=channel_title, y=likes, fill=number_of_videos_trending)) + 
+    geom_bar(stat="identity",
+             position=position_dodge(),
+             size=.3)+
+  scale_y_log10()+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  xlab("Channel title")+
+  ylab("log10(likes)")
+
+summary(yt_trending_by_number_of_videos_trending[1:25,]$likes)
+```
+Again, **ESPN**, **NBA**, **Netflix** and **Vox** are the top channels in terms 
+of number of videos on trending. But, **First We Feast**, **NFL**, **The 
+Tonight Show Starring Jimmy Fallon** and **WIRED**, and **WWE** are higher in 
+terms of number of likes.
+
+
+```{r echo=FALSE, warning=FALSE, Multivariate_Plots_4}
+ggplot(data=yt_trending_by_number_of_videos_trending[1:25,],
+       aes(x=channel_title, y=dislikes, fill=number_of_videos_trending)) + 
+    geom_bar(stat="identity",
+             position=position_dodge(),
+             size=.3)+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  xlab("Channel title")+
+  ylab("dislikes")+
+  scale_y_continuous(breaks=seq(0,2000000,10000))
+
+ggplot(data=yt_trending_by_number_of_videos_trending[1:25,],
+       aes(x=channel_title, y=dislikes, fill=number_of_videos_trending)) + 
+    geom_bar(stat="identity",
+             position=position_dodge(),
+             size=.3)+
+  scale_y_log10()+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  xlab("Channel title")+
+  ylab("log10(dislikes)")
+
+summary(yt_trending_by_number_of_videos_trending[1:25,]$dislikes)
+```
+
+Here we see, even **NFL** is coming close to the above four channels that we see 
+topping the plots previously. We see a massive spike in the number of dislikes 
+for **Washington Post** (132400) a **News & Politics** channel which is a order 
+of magnitude higher than the median. Although, again, **ESPN** and **NFL** are 
+still in the top 3.
+
+(Considering the mean for comparision is not a good decision for this plot as 
+there is a very large outlier to skew the mean)
+
+```{r echo=FALSE, warning=FALSE, Multivariate_Plots_5}
+ggplot(data=yt_trending_by_number_of_videos_trending[1:25,],
+       aes(x=channel_title, y=comment_count, fill=number_of_videos_trending)) + 
+    geom_bar(stat="identity",
+             position=position_dodge(),
+             size=.3)+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  xlab("Channel title")+
+  ylab("comment count")
+
+ggplot(data=yt_trending_by_number_of_videos_trending[1:25,],
+       aes(x=channel_title, y=comment_count, fill=number_of_videos_trending)) + 
+    geom_bar(stat="identity",
+             position=position_dodge(),
+             size=.3)+
+  scale_y_log10()+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  xlab("Channel title")+
+  ylab("log10(comment count)")
+
+summary(yt_trending_by_number_of_videos_trending[1:25,]$comment_count)
+```
+
+Again, we see large spikes for **CNN**, **WIRED** and **Washington Post** all of
+ which are **News & Politics** channels. 
+
+(The maximum value is again an order of magnitude higher than the median value) 
+
+Hence, continuing the trend of people expressing their wide range of opinions 
+not only through dislikes but also through comments.
+
+```{r echo=FALSE, warning=FALSE, Multivariate_Plots_6}
+ggplot(data=yt_trending_by_number_of_videos_trending[1:25,],
+       aes(x=channel_title, y=days_on_trending, 
+           fill=number_of_videos_trending)) + 
+    geom_bar(stat="identity",
+             position=position_dodge(),
+             size=.3)+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  xlab("Channel title")+
+  ylab("Days on trending")
+
+summary(yt_trending_by_number_of_videos_trending[1:25,]$days_on_trending)
+```
+
+Although, the domination of **ESPN**, **NBA**, **Netflix** and **Vox** continues
+ in terms of number of videos on trending, we see that only **NBA** channel's 
+videos trend for a time longer than the average.
+
+Also, channel's like **ABC News**, **Bon Appetit**, **Great Big Story** and 
+**WIRED** all produce videos that trend for a longer time than the channel's 
+mentioned above.
+
+___
+___
+
+<a id='multivariate-analysis'></a>
+
+# Multivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the \
+investigation. Were there features that strengthened each other in terms of \
+looking at your feature(s) of interest?
+
+Looking at the top trending channels in terms of the number of videos trending, 
+the same four channels **ESPN**, **NBA**, **Netflix** and **Vox** showed 
+consistent domination across all the features except number of days on trending.
+
+**News & Politics** channels in general, had very large values for features like 
+**dislikes**, **comment count** and **days on trending** indicating strongs 
+opinions of the people on the content posted by these channels.
+
+### Were there any interesting or surprising interactions between features?
+
+Features like **likes**, **views** etc. were generally higher for channels posting 
+videos of the categories of **Entertainment** and **Music**.
+
+Features like **dislikes**, **comment count** and **days on trending** were 
+generally orders of magnitude higher for **News & Politics** channels.
+
+___
+___
+
+<a id='final-plots-and-summary'></a>
+
+# Final Plots and Summary
+
+<a id='plot-one'></a>
+
+### Plot One
+```{r echo=FALSE, warning=FALSE, fig.width=12, fig.height=6, Plot_One}
+views_likes_plot <- ggplot(normalized_values,
+                           aes(x=normalized_values$views,
+                               y=normalized_values$likes))+
+  geom_point(alpha=0.2,colour="chartreuse2")+
+  geom_abline(slope=1,intercept=0)+
+  xlim(0,0.3)+
+  ylim(0,0.3)+
+  xlab("Normalized views")+
+  ylab("Normalized likes")
+
+dislikes_commentCount_plot <- ggplot(normalized_values,
+                           aes(x=normalized_values$dislikes,
+                               y=normalized_values$comment_count))+
+  geom_point(alpha=0.2,colour="darkorchid")+
+  geom_abline(slope=1,intercept=0)+
+  xlim(0,0.15)+
+  ylim(0,0.15)+
+  xlab("Normalized dislikes")+
+  ylab("Normalized comment count")
+
+grid.arrange(views_likes_plot,dislikes_commentCount_plot,ncol=2)
+```
+
+<a id='description-one'></a>
+
+### Description One
+We visualize the correlations between **views** and **likes** (both normalized; 
+since numerically the number of views is always higher in the dataset) on the 
+left and that between **dislikes** and **comment count** (also normalized) on 
+the right.
+
+One important trend we can observe from these correlations is that if a video 
+has a high number of views then it also has a high number of likes indicating 
+(not inferring) that the chance of being being popular due to bad publicity is 
+low.
+
+From the second plot, we can see that if a video has a high number of dislikes 
+then it also tends to have a high comment count indicating that the video  may 
+be controversial and hence the people are more likely to leave a comment.
+
+Of course, these claims are just based on correlations and a hypothesis test is 
+required to prove any causation.
+
+<a id='plot-two'></a>
+
+### Plot Two
+```{r echo=FALSE, warning=FALSE, fig.width=12, fig.height=15, Plot_Two}
+grid.arrange(category_views_boxplot,
+             category_likes_boxplot,
+             category_dislikes_boxplot,
+             category_commentCount_boxplot,
+             category_daysOnTrending_boxplot,
+             category_numberOfVideosTrending,
+             ncol = 2)
+
+print("IQR of Shows for views:")
+by(yt_trending$views,yt_trending$category_name=='Shows',IQR)
+
+print("IQR of Shows for likes:")
+by(yt_trending$likes,yt_trending$category_name=='Shows',IQR)
+
+print("IQR of Shows for dislikes:")
+by(yt_trending$dislikes,yt_trending$category_name=='Shows',IQR)
+
+print("IQR of Shows for comment count:")
+by(yt_trending$comment_count,yt_trending$category_name=='Shows',IQR)
+
+print("IQR of Shows for days on trending:")
+by(yt_trending$days_on_trending,yt_trending$category_name=='Shows',IQR)
+```
+
+<a id='description-two'></a>
+
+### Description Two
+Specifically, focussing on the **Shows** category of videos, we can see that of 
+all the categories of videos across all of the features they have the least 
+IQR value but also trend for the longest duration of time as can be seen from 
+from the plots.
+
+<a id='plot-three'></a>
+
+### Plot Three
+```{r echo=FALSE, Plot_Three}
+ggplot(data=yt_trending_by_number_of_videos_trending[1:25,],
+       aes(x=channel_title, y=dislikes, fill=number_of_videos_trending)) + 
+    geom_bar(stat="identity",
+             position=position_dodge(),
+             size=.3)+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  xlab("Channel title")+
+  ylab("Number of dislikes")+
+  scale_y_continuous(breaks=seq(0,2000000,10000))
+
+ggplot(data=yt_trending_by_number_of_videos_trending[1:25,],
+       aes(x=channel_title, y=comment_count, fill=number_of_videos_trending)) + 
+    geom_bar(stat="identity",
+             position=position_dodge(),
+             size=.3)+
+  scale_y_continuous(breaks=seq(0,50000,5000))+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1))+
+  xlab("Channel title")+
+  ylab("Number of comments")
+```
+
+<a id='description-three'></a>
+
+### Description Three
+Between the two plots, we can see that videos posted by **Washington Post** both
+ have the highest number of dislikes and one of the highest number of comments.
+
+Looking at other channels in the above plots with notable values, **ESPN**, 
+**NFL**, **CNN** and **WIRED** have some of the highest values for number of 
+comments.
+
+An interesting point to note is that, all of these channels post videos 
+excludively of either the **News & Politics** or **Sports** category which are 
+categories having supporters with different viewpoints and opinions and hence a 
+high possibility of disagreement and this is clealy visible in the 
+distribution of the data in the above plots.
+
+___
+___
+
+<a id='reflection'></a>
+
+# Reflection
+
+The **YouTube Trending Statistics** is a daily record of the top trending videos
+on the video sharing platform YouTube. The data used is that from the USA. It 
+contains data about 23,362 (4,712 unique) videos across 13 features.
+ 
+I began the analysis process by first preprocessing the data to remove some of 
+the features and converting the dataset into a data.table type for quick 
+access, merging etc. of the data. Some features like **days_on_trending** and 
+**number_of_trending_videos** were derived from the data present in the dataset 
+and added to it.
+
+The analysis was carried out both over the entire dataset and over the Top 100 
+Trending Videos (a subset of the entire dataset). In both cases, **views** and 
+**likes** had a high correlation but **dislikes** and **comment count** had a 
+high correlation only over the entire dataset but not in the Top 100 Trending 
+Videos.
+
+**Entertainment** and **Music** categories dominate the Top 100 Trending Videos
+ in terms of the values of various features like **views**, **likes**,
+**comment count** and **days on trending**. Also, videos of the category 
+**Shows** trend for the longest time.
+
+Further, looking at the top trending channels, positively indicative features 
+like **views** and **likes** were high for the channels posting 
+**Entertainment** and **Music** category of videos. While, features indicating 
+controvery were high for channels posting videos of the **News & Politics** 
+category.
+
+This trend is easily observed online. Politics tends to be a category 
+that generates a lot of controvery as people with different opinions 
+come in contact. Whereas, music is in general a category that a majority 
+of viewers have a similar opinion about.<br>
+This facet of online interactions is quite accurately captured by this analysis.
+
+I also tried to include a feature measuring the number of days a video took 
+from its date of upload to start trending but ultimately could not due to not 
+being able to preprocess the date format given in the dataset.
+
+In addition to the analysis performed here, we could do a sentiment analysis 
+using the title of the videos, video description and tags of the video. This can 
+help in more accurately predicting the different features of the videos. This 
+type of analysis can help understand how the perception of the audience
+varies over different types of content and consequently help in the 
+development of future content.
